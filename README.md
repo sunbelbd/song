@@ -91,6 +91,9 @@ You can dump these binary files easily in your code, e.g., with `fwrite` in C++.
 6. I installed nvcc and got errors like "sh: 1: cicc: not found" or "cc1plus: fatal error: cuda\_runtime.h: No such file or directory" in the compilation. What should I do?
 This may happen when the path of the default `nvcc` executable is not well configured. Try to edit the variable `NVCC` in *Makefile* and point `NVCC` to the non-symbolic-link executable of your installation, e.g., `NVCC=/usr/local/cudaX-Y/bin/nvcc`, where `cudaX-Y` is the cuda version you have.
 
+7. How do I specify a GPU to use?
+SONG performs the same as other CUDA programs. You can specify the GPU you want with the environment variable CUDA_VISIBLE_DEVICES. Notice that SONG is a computation and resource intensive program. We highly recommend to only run SONG on an idle GPU device to obtain the best performance.
+
 ## Todo List
 - [ ] Add a python interface
 - [ ] Add tensor core optimizations

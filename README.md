@@ -45,10 +45,10 @@ Usage: ./fill_parameters.sh <pq_size> <dim> <cos/l2/ip>
 For example: ./fill_parameters.sh 100 16 cos
 ```
 
-<dim> is the number of dimensions of the dataset. For the example letter dataset, it has 16 dimensions.
-<pq_size> is a searching parameter. We use `100` here for demonstration only. You can tune the parameter for your desired performance. The greater it is, the better recall we obtain in the searching result (with the cost of longer running time). Note that due to the GPU memory limit, you cannot set an arbitrary large number for `pq_size`. Having a too large number will cause a crash in runtime.
+`<dim>` is the number of dimensions of the dataset. For the example letter dataset, it has 16 dimensions.
+`<pq_size>` is a searching parameter. We use `100` here for demonstration only. You can tune the parameter for your desired performance. The greater it is, the better recall we obtain in the searching result (with the cost of longer running time). Note that due to the GPU memory limit, you cannot set an arbitrary large number for `pq_size`. Having a too large number will cause a crash in runtime.
 
-<cos/l2/ip> is the similarity/distance measure. `cos` for Cosine similarity, `l2` for L2 distance/Euclidean distance, and `ip` for max inner-product search.
+`<cos/l2/ip>` is the similarity/distance measure. `cos` for Cosine similarity, `l2` for L2 distance/Euclidean distance, and `ip` for max inner-product search.
 
 ### Build Graph Index
 We have to have a graph index before we apply the GPU searching algorithm in SONG.

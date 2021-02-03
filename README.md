@@ -42,7 +42,7 @@ We assume `letter.scale` and `letter.scale.t` are stored in the working director
 We first need to fill the parameters into the generated code templates.
 ```
 Usage: ./fill_parameters.sh <pq_size> <dim> <cos/l2/ip>
-For example: ./fill_parameters.sh 100 26 cos
+For example: ./fill_parameters.sh 100 16 cos
 ```
 
 <dim> is the number of dimensions of the dataset. For the example letter dataset, it has 16 dimensions.
@@ -54,14 +54,14 @@ For example: ./fill_parameters.sh 100 26 cos
 We have to have a graph index before we apply the GPU searching algorithm in SONG.
 ```
 Usage: ./build_graph.sh <build_data> <row> <dimension> <l2/ip/cos>
-For example: ./build_graph.sh letter.scale 15000 26 cos
+For example: ./build_graph.sh letter.scale 15000 16 cos
 ```
 
 ### Run SONG GPU Searching Algorithm
 ```
 Usage: ./test_query.sh <query_data> <built_graph_row> <built_graph_dimension> <l2/ip/cos> [display top k]
-For example: ./test_query.sh letter.scale.t 15000 26 cos
-Use display top 5: ./test_query.sh letter.scale.t 15000 26 cos 5
+For example: ./test_query.sh letter.scale.t 15000 16 cos
+Use display top 5: ./test_query.sh letter.scale.t 15000 16 cos 5
 ```
 The output is the zero-based base vector indices. One line corresponds to one query.
 The similarity/distance measure should match the parameter we provide in `fill_parameters.sh`.

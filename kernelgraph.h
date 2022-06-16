@@ -11,6 +11,9 @@
 #include"warp_astar_accelerator.h"
 
 
+#include"bithash.h"     //Added by saim
+
+
 class GraphWrapper{
 public:
     virtual void add_vertex(idx_t vertex_id,std::vector<std::pair<int,value_t>>& point) = 0;
@@ -18,7 +21,8 @@ public:
     virtual void dump(std::string file = "bfsg.graph") = 0;
     virtual void load(std::string file = "bfsg.graph") = 0;
 	virtual void search_top_k_batch(const std::vector<std::vector<std::pair<int,value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results){};
-	virtual ~GraphWrapper(){};
+    virtual void search_top_k_batch2(const std::vector<std::vector<std::pair<int,value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results, BitHash& bithash){}; //Added by saim
+    virtual ~GraphWrapper(){};
 };
 
 template<const int dist_type>
@@ -36,6 +40,7 @@ private:
         //We assume the neighbors of v_ids in edges[offset] are sorted 
         //by the distance to v_id ascendingly when it is full
         //NOTICE: before it is full, it is unsorted
+        printf("hashKernel");
         auto curr_dist = pair_distance(v_id,u_id);
         auto offset = v_id << vertex_offset_shift;
         //We assert edges[offset] > 0 here
@@ -69,8 +74,10 @@ private:
         	return data->l2_distance(a,b);
 		else if(dist_type == 1)
         	return data->negative_inner_prod_distance(a,b);
+        else if(dist_type == 2)
+            return data->negative_cosine_distance(a,b);
         else
-			return data->negative_cosine_distance(a,b);
+            return data->bit_hamming_distance(a,b); //Added by Saim
     }
 
     void compute_distance_naive(size_t offset,std::vector<dist_t>& dists){

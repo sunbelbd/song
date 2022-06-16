@@ -3,41 +3,53 @@
 #include"data.h"
 #include<vector>
 #include"config.h"
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
+#include<cstdio>
+#include<cstdlib>
+#include<cmath>
 #include<cuda_runtime.h>
 #include"cublas_v2.h"
 #include"smmh2.h"
 #include"bin_heap.h"
 #include"bloomfilter.h"
 #include"vanilla_list.h"
+#include<iostream>
+#include<chrono>
 
 #define FULL_MASK 0xffffffff
 #define N_THREAD_IN_WARP 32
 #define DIM 784
-#define HASH_BITS 256
+#define HASH_BITS 128
 #define HASH_DIM (HASH_BITS / 32)
+//#define HASH_DIM 512
 
 __global__
 void hash_query(data_value_t* d_query,bithash_t* d_hash_matrix,value_t* d_hashquery){
+
     int bid = blockIdx.x;
     int tid = threadIdx.x;
-	if(tid == 0){
-		for(int i = 0;i < HASH_DIM;++i)
-			d_hashquery[bid * HASH_DIM + i] = 0;
+
+	if(tid == 0) {
+        for (int i = 0; i < HASH_DIM; ++i){
+            d_hashquery[bid * HASH_DIM + i] = 0;
+        }
 	}
+//    printf("ASTARMULTI4444");
+//    printf("---%f---",d_hash_matrix[0]);
+//    printf("ASTARMULTI5555");
+
 	for(int i = 0;i < HASH_BITS;++i){
-		float sum = 0;
+		float sum = 0.0;
 		for(int j = tid;j < DIM;j += N_THREAD_IN_WARP){
-			sum += d_query[bid * DIM + j] * d_hash_matrix[i * DIM + j];
+			sum += ((float)d_query[bid * DIM + j]) * d_hash_matrix[i * DIM + j];
 		}
-		for (int offset = N_THREAD_IN_WARP; offset > 0; offset /= 2)
-    		sum += __shfl_down_sync(FULL_MASK, sum, offset);
+		for (int offset = N_THREAD_IN_WARP; offset > 0; offset /= 2) {
+            sum += __shfl_down_sync(FULL_MASK, sum, offset);
+        }
 		if(tid == 0){
 			d_hashquery[bid * HASH_DIM + (i / 32)] |= (sum >= 0) << (i & 31);
 		}
 	}
+
 }
 
 __global__
@@ -127,7 +139,8 @@ void warp_independent_search_kernel(value_t* d_data,value_t* d_query,idx_t* d_re
 
 __global__
 void warp_independent_search_kernel_with_heap(value_t* d_data,value_t* d_query,idx_t* d_result,idx_t* d_graph,int num_query,int vertex_offset_shift){
-	const int QUEUE_SIZE = TOPK;
+	//printf("kkkklklll");
+    const int QUEUE_SIZE = TOPK;
     int bid = blockIdx.x;
 	const int step = N_THREAD_IN_WARP;
 	if(bid >= num_query)
@@ -229,6 +242,7 @@ void warp_independent_search_kernel_with_heap(value_t* d_data,value_t* d_query,i
 
 		__syncthreads();
 		if(tid == 0){
+            //printf("line244");
 			for(int i = 0;i < index_list_len;++i){
 				dist_t d = dist_list[i];
 				KernelPair<dist_t,idx_t> kp;
@@ -297,12 +311,14 @@ public:
     }
     
 	static void astar_multi_start_search_batch_with_heap(const std::vector<std::vector<std::pair<int,data_value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results,value_t* h_data,idx_t* h_graph,int vertex_offset_shift,int num,bithash_t* d_hash_matrix){
+
         value_t* d_data;
 		data_value_t* d_query;
 		value_t* d_hashquery;
 		idx_t* d_result;
 		idx_t* d_graph;
 		const int dim = DIM;
+                                //num= no of points
 		
 		
 		std::unique_ptr<data_value_t[]> h_query = std::unique_ptr<data_value_t[]>(new data_value_t[queries.size() * dim]);
@@ -321,11 +337,19 @@ public:
 		cudaMalloc(&d_graph,sizeof(idx_t) * (num << vertex_offset_shift));
 		
 		cudaMemcpy(d_data,h_data,sizeof(value_t) * num * HASH_DIM,cudaMemcpyHostToDevice);
-		cudaMemcpy(d_query,h_query.get(),sizeof(data_value_t) * queries.size() * dim,cudaMemcpyHostToDevice);
 		cudaMemcpy(d_graph,h_graph,sizeof(idx_t) * (num << vertex_offset_shift),cudaMemcpyHostToDevice);
+
+		auto time_begin = std::chrono::steady_clock::now();
+		
+		cudaMemcpy(d_query,h_query.get(),sizeof(data_value_t) * queries.size() * dim,cudaMemcpyHostToDevice);
 		hash_query<<<queries.size(),32>>>(d_query,d_hash_matrix,d_hashquery);
 		warp_independent_search_kernel_with_heap<<<queries.size(),32>>>(d_data,d_hashquery,d_result,d_graph,queries.size(),vertex_offset_shift);
-		cudaMemcpy(h_result.get(),d_result,sizeof(idx_t) * queries.size() * TOPK,cudaMemcpyDeviceToHost);
+        	cudaMemcpy(h_result.get(),d_result,sizeof(idx_t) * queries.size() * TOPK,cudaMemcpyDeviceToHost);
+
+		std::chrono::steady_clock::time_point time_end = std::chrono::steady_clock::now();
+        	auto t_total= std::chrono::duration_cast<std::chrono::microseconds>(time_end - time_begin).count();
+        	fprintf(stderr,"Sum of all three stages is: %ld microseconds\n", t_total);
+        	fprintf(stdout,"Sum of all three stages is: %ld microseconds\n", t_total);
 		
 		cudaFree(d_data);
 		cudaFree(d_query);
@@ -335,8 +359,10 @@ public:
 		results.clear();
 		for(int i = 0;i < queries.size();++i){
 			std::vector<idx_t> v(TOPK);
-			for(int j = 0;j < TOPK;++j)
-				v[j] = h_result[i * TOPK + j];
+			for(int j = 0;j < TOPK;++j) {
+                v[j] = h_result[i * TOPK + j];
+            }
+
 			results.push_back(v);
 		}
     }

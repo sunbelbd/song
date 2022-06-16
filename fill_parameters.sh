@@ -7,7 +7,7 @@ if [ "$#" -ne 3 ]; then
 fi
 
 
-hash_bits=256 #Not used in default
+hash_bits=128 #Not used in default
 n_tables=10   #Not used in default
 topk=$1
 dim=$2

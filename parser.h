@@ -6,6 +6,7 @@
 #include<memory>
 #include<vector>
 #include<functional>
+#include<iostream>
 
 
 
@@ -55,10 +56,15 @@ public:
         std::vector<std::string> buffers;
         idx_t idx = 0;
         while(fgets(buff.get(),MAX_LINE,fp)){
+//            for(int i=0;i<MAX_LINE;i++)
+//                printf("%c",*(buff.get()+i));
             auto tokens = tokenize(buff.get());
             auto values = parse(tokens,buff.get());
+//            for(auto p:values)
+//                std::cout<<p.first<<"**"<<p.second<<std::endl;
             consume(idx,values);
             ++idx;
+
         }
         fclose(fp);
     }

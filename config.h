@@ -1,13 +1,15 @@
 #pragma once
 
-//#define __ENABLE_HASH
+#define __ENABLE_HASH
 
-typedef float data_value_t;
+typedef float data_value_t; 
 
 #ifdef __ENABLE_HASH
+//typedef unsigned int data_value_t; // added by Saim
 typedef unsigned int value_t; 
 typedef int dist_t; 
 #else
+//typedef float data_value_t; //added by Saim
 typedef float value_t; 
 typedef double dist_t; 
 #endif

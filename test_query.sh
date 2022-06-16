@@ -10,9 +10,9 @@ fi
 search=100 #only used in CPU mode
 display=100
 
-if [ "$#" -ge 5 ]; then
-  display=$5
+if [ "$#" -ge 6 ]; then
+  display=$6
 fi
 
-$(dirname $0)/song test 0 $1 ${search} $2 $3 ${display} $4
+$(dirname $0)/song test 0 $1 ${search} $2 $3 ${display} $4 $5
 

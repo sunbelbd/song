@@ -12,8 +12,11 @@
 #include"astar_accelerator.h"
 #include"hash_warp_no_heap_astar_accelerator.h"
 
+#include<iostream>
+
+
 template<const int dist_type>
-class HashKernelGraph /*: public GraphWrapper*/{
+class HashKernelGraph : public GraphWrapper{        //
 private:
     const int degree = 15;//255;//31;
     const int flexible_degree = degree * 2 + 1;
@@ -28,7 +31,8 @@ private:
         //We assume the neighbors of v_ids in edges[offset] are sorted 
         //by the distance to v_id ascendingly when it is full
         //NOTICE: before it is full, it is unsorted
-        auto curr_dist = pair_distance(v_id,u_id);
+        //printf("hashKernel");
+	    auto curr_dist = pair_distance(v_id,u_id);
         auto offset = v_id << vertex_offset_shift;
         //We assert edges[offset] > 0 here
         if(curr_dist >= edge_dist[offset + edges[offset]]){
@@ -210,6 +214,7 @@ public:
     }
 
     void search_top_k(const std::vector<std::pair<int,value_t>>& query,int k,std::vector<idx_t>& result){
+        //std::cout<<"kkk"<<std::endl;
         astar_multi_start_search(query,k,result);
     }
 
@@ -258,25 +263,30 @@ public:
         auto cnt = fread(&edges[0],sizeof(edges[0]) * (num_vertices << vertex_offset_shift),1,fp);
         fclose(fp);
     }
+
+    void load_hash_matrix(const std::vector<bithash_t>& matrix){
+        cudaMalloc(&d_hash_matrix,sizeof(bithash_t) * matrix.size());
+        cudaMemcpy(d_hash_matrix,matrix.data(),sizeof(bithash_t) * matrix.size(),cudaMemcpyHostToDevice);
+    }
     
-	void search_top_k_batch(const std::vector<std::vector<std::pair<int,data_value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results){
-//		std::unique_ptr<AStarAccelerator> = std::unique_ptr<AStarAccelerator>(new AStarAccelerator());	
+	void search_top_k_batch2(const std::vector<std::vector<std::pair<int,data_value_t>>>& queries,int k,std::vector<std::vector<idx_t>>& results, BitHash& bithash){
+
+        //		std::unique_ptr<AStarAccelerator> = std::unique_ptr<AStarAccelerator>(new AStarAccelerator());
 //    	AStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),data->get_dim());
 //    	RepAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),data->get_dim());
 //    	WarpAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),data->get_dim());
 //    	WarpNoHeapAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),data->get_dim());
 #ifdef __NO_HEAP_SEARCH
-    	HashWarpNoHeapAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),d_hash_matrix);
+        printf("if");
+    HashWarpNoHeapAStarAccelerator::astar_multi_start_search_batch(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),d_hash_matrix);
 #else
-    	HashWarpNoHeapAStarAccelerator::astar_multi_start_search_batch_with_heap(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),d_hash_matrix);
+
+        load_hash_matrix(bithash.hash_matrix);      //Added by saim
+
+        HashWarpNoHeapAStarAccelerator::astar_multi_start_search_batch_with_heap(queries,k,results,data->get(0),edges.data(),vertex_offset_shift,data->max_vertices(),d_hash_matrix);
 #endif
         //fprintf(stderr,"finished one batch\n");
     }
-
-	void load_hash_matrix(const std::vector<bithash_t>& matrix){
-		cudaMalloc(&d_hash_matrix,sizeof(bithash_t) * matrix.size());
-		cudaMemcpy(d_hash_matrix,matrix.data(),sizeof(bithash_t) * matrix.size(),cudaMemcpyHostToDevice);
-	}
 
 };
 

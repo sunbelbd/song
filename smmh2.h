@@ -122,7 +122,7 @@ void deletion(T* smmh,int idx,int& max_size){
 	smmh[idx] = smmh[--max_size];
 	int Y = idx;
 	while(1){
-		Y = adjust_sibling(smmh,Y,max_size);
+		adjust_sibling(smmh,Y,max_size);
 		int X = adjust_grandchild(smmh,Y,max_size);
 		if(X == Y)
 			break;
